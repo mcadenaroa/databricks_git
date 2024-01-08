@@ -24,7 +24,11 @@
 
 dbutils.widgets.dropdown(name="run as", choices=["testing", "production"], defaultValue="testing")
 
+
+# COMMAND ----------
+
 run_as = dbutils.widgets.get("run as")
+print(run_as)
 
 # COMMAND ----------
 
@@ -88,3 +92,8 @@ df.to_pandas().plot(figsize=(13,6), grid=True).legend(loc='upper left')
 
 if run_as == "testing":
   spark.sql("DROP TABLE testing_covid_analysis")
+
+# COMMAND ----------
+
+# MAGIC %sql 
+# MAGIC SELECT * FROM  production_covid_analysis
