@@ -4,7 +4,12 @@
 
 # COMMAND ----------
 
+# Download file from the internet
 !wget -q https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/hospitalizations/covid-hospitalizations.csv -O /tmp/covid-hospitalizations.csv
+
+#Move file to DBFS
+dbutils.fs.cp("file:/tmp/covid-hospitalizations.csv", "/mnt/covid-hospitalizations.csv")
+
 
 # COMMAND ----------
 
@@ -12,15 +17,31 @@
 
 # COMMAND ----------
 
-import pandas as pd
+import pyspark
+from pyspark.sql import SparkSession
+from pyspark.sql.types import LongType, StringType, StructField, StructType, BooleanType, ArrayType, IntegerType
+from pyspark.sql.functions import when
 
-# read from /tmp, subset for USA, pivot and fill missing values
-df = pd.read_csv("/tmp/covid-hospitalizations.csv")
-df = df[df.iso_code == 'USA']\
-     .pivot_table(values='value', columns='indicator', index='date')\
-     .fillna(0)
+# Create a Spark session
+spark = SparkSession.builder.appName("Covid-19 cases").getOrCreate()
 
-display(df)
+# define schema
+# Load the data
+user_schema = 'entity STRING, iso_code STRING, date STRING, indicator STRING, value DOUBLE'
+psdf = spark.read.csv('/mnt/covid-hospitalizations.csv', header=True, schema = user_schema)
+
+# Filter the data
+psdf = psdf.filter(psdf.iso_code == 'USA')\
+     .groupBy("date")\
+     .pivot("indicator")\
+     .agg({"value": "first"})
+
+# Fill NA values with 0
+psdf = psdf.na.fill(0)
+
+# Display the DataFrame
+display(psdf)
+
 
 # COMMAND ----------
 
@@ -29,7 +50,11 @@ display(df)
 
 # COMMAND ----------
 
-df.plot(figsize=(13,6), grid=True).legend(loc='upper left')
+# Visualize - 
+pandas_df = psdf.toPandas()
+sampled_pandas_df = psdf.sample(False, 0.8).toPandas()
+sampled_pandas_df.plot(figsize=(12,6), grid=True).legend(loc='upper left')
+
 
 # COMMAND ----------
 
@@ -39,15 +64,14 @@ df.plot(figsize=(13,6), grid=True).legend(loc='upper left')
 
 # COMMAND ----------
 
-import pyspark.pandas as ps
+# import pyspark.pandas as ps
 
-clean_cols = df.columns.str.replace(' ', '_')
+clean_cols = psdf.columns.str.replace(' ', '_')
 
-# Create pandas on Spark dataframe
-psdf = ps.from_pandas(df)
+# # Create pandas on Spark dataframe
+# psdf = ps.from_pandas(pandas_df)
 
 psdf.columns = clean_cols
-psdf['date'] = psdf.index
 
 # Write to Delta table, overwrite with latest data each time
 psdf.to_table(name='dev_covid_analysis', mode='overwrite')
