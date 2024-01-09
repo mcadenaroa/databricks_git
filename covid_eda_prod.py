@@ -76,7 +76,7 @@ df.to_table(name=run_as+"_covid_analysis", mode='overwrite')
 # COMMAND ----------
 
 # Using Databricks visualizations and data profiling
-display(spark.table(run_as+"_covid_analysis"))
+display(spark.table(run_as+"_mcr_covid_analysis"))
 
 # COMMAND ----------
 
@@ -90,10 +90,10 @@ df.to_pandas().plot(figsize=(13,6), grid=True).legend(loc='upper left')
 
 # COMMAND ----------
 
-if run_as == "testing":
-  spark.sql("DROP TABLE testing_covid_analysis")
+# if run_as == "testing":
+#   spark.sql("DROP TABLE testing_covid_analysis")
 
 # COMMAND ----------
 
 # MAGIC %sql 
-# MAGIC SELECT * FROM  production_covid_analysis
+# MAGIC SELECT * FROM  testing_mcr_covid_analysis

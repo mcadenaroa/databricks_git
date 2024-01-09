@@ -1,5 +1,6 @@
 # View the latest COVID-19 hospitalization data
 
+# install requirements
 pip install -r ./requirements.txt
 
 dbutils.widgets.dropdown(name="run as", choices=["testing", "production"], defaultValue="testing")
